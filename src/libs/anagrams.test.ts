@@ -1,4 +1,4 @@
-import Anagram, {InvalidAnagramError, Transition} from "./anagrams";
+import Anagram, {Transition} from "./anagrams";
 
 let targetString: string;
 let initialString: string;
@@ -6,33 +6,6 @@ let initialString: string;
 const constructAnagram = () => new Anagram(initialString, targetString);
 
 describe('Anagram', () => {
-    describe('constructor', () => {
-        const subject = constructAnagram;
-
-        describe('is not an anagram', () => {
-            beforeEach(() => {
-                targetString = 'details';
-                initialString = 'entails';
-            });
-
-            it('throws exception', () => {
-                expect(() => subject()).toThrow(InvalidAnagramError)
-            })
-        });
-
-        describe('is an anagram', () => {
-            beforeEach(() => {
-                targetString = 'He bugs Gore!';
-                initialString = 'George Bush';
-            });
-
-            it('creates an instance', () => {
-                expect(subject()).toBeInstanceOf(Anagram);
-            })
-        })
-    });
-
-
     describe('transformCharacters', () => {
         const subject = () => constructAnagram().calculateTransitionSteps();
 
@@ -71,8 +44,8 @@ describe('Anagram', () => {
 
         describe('Something to empty', () => {
             beforeEach(() => {
-                initialString = '';
-                targetString = 'Something';
+                initialString = 'Something';
+                targetString = '';
             });
 
             it('Returns expected', () => {
@@ -119,9 +92,9 @@ describe('Anagram', () => {
                     'ggaronerd',
                     'gagronerd',
                     'aggronerd',
-                    'Aggronerd',
-                    'Aggronerd!',
-                    'Aggronerd!!',
+                    'aggronerd!',
+                    'aggronerd!!',
+                    'aggronerd!!!',
                     'Aggronerd!!!',
                 ])
             });
@@ -135,7 +108,47 @@ describe('Anagram', () => {
 
             it('returns expected', () => {
 
-                expect(subject()).toEqual([])
+                expect(subject()).toEqual([
+                    "George Bush",
+                    "george Bush",
+                    "george bush",
+                    "egorge bush",
+                    "egogre bush",
+                    "egogr ebush",
+                    "egogr beush",
+                    "egogr buesh",
+                    "egogr buseh",
+                    "egogr bushe",
+                    "eggor bushe",
+                    "eggo rbushe",
+                    "eggo brushe",
+                    "eggo burshe",
+                    "eggo busrhe",
+                    "eggo bushre",
+                    "egg obushre",
+                    "egg boushre",
+                    "egg buoshre",
+                    "egg busohre",
+                    "egg bushore",
+                    "eg gbushore",
+                    "eg bgushore",
+                    "eg bugshore",
+                    "eg busghore",
+                    "eg bushgore",
+                    "e gbushgore",
+                    "e bgushgore",
+                    "e bugshgore",
+                    "e bughsgore",
+                    "e buhgsgore",
+                    "e bhugsgore",
+                    "e hbugsgore",
+                    "eh bugsgore",
+                    "he bugsgore",
+                    "he bugs gore",
+                    "he bugs gore!",
+                    "He bugs gore!",
+                    "He bugs Gore!"
+                ])
             });
         });
     });
@@ -213,6 +226,19 @@ describe('Transition', () => {
 
                 expect(transitionStep.getCurrentString()).toEqual('ilsten');
             })
-        })
+        });
+
+       describe('Insertion of special character in middle', () => {
+           beforeEach(() => {
+               initialString = 'hypenjones';
+               targetString = 'hypen-jones'
+           });
+
+           it('Adds the hypen', () => {
+               subject();
+
+               expect(transitionStep.getCurrentString()).toEqual('hypen-jones');
+           })
+       })
    })
 });

@@ -114,10 +114,12 @@ function stageMatchCase(transition: Transition): boolean {
 }
 
 function stageInsertMissingCharacters(transition: Transition): boolean {
-    while(transition.getScanningIndex() < transition.getCurrentChars().length) {
+    while(transition.getScanningIndex() < transition.targetString.length) {
         const currentChar = transition.getCurrentChars()[transition.getScanningIndex()];
         const targetChar = transition.targetString.charAt(transition.getScanningIndex());
-        if(targetChar.toUpperCase() !== currentChar.toUpperCase()) {
+        if((currentChar === undefined && targetChar !== undefined) ||
+            targetChar.toUpperCase() !== currentChar.toUpperCase()) {
+
             transition.insertString(targetChar);
             transition.incrementScanningIndex();
             return false;
