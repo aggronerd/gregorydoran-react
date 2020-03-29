@@ -1,61 +1,9 @@
-const punctuationRegex = /^[.!? \-@]$/;
-
-/**
- * Thrown if an invalid Anagram is created.
- */
-export class InvalidAnagramError implements Error {
-    name: string;
-    message: string;
-
-    constructor(to: string, from: string) {
-        this.name = 'Invalid Anagram';
-        this.message = `"${from}" and "${to}" are not an anagram`;
-    }
-}
-
-/**
- * F.F.S. EMCA6 consider order in equality unlike other languages.
- *
- * @param set1
- * @param set2
- * @returns True if the two sets are equal (ignoring order)
- */
-function setIsEqual(set1: Set<any>, set2: Set<any>): boolean {
-    if(set1.size !== set2.size) {
-        return false;
-    }
-
-    set1.forEach((i) => {
-        if(!set2.has(i)) { return false }
-    });
-
-    return true;
-}
-
 /**
  * Representation of an anagram which provide utility methods on it.
  */
 export default class Anagram {
-    to: string;
-    from: string;
-
-    /**
-     * Returns true if the string is an anagram.
-     */
-    private static isValidAnagram(string1: string, string2: string): boolean {
-        const characterSets: Array<Set<string>> = new Array<Set<string>>(2);
-        const inputStrings = [string1, string2];
-
-        for(const i in inputStrings) {
-            characterSets[i] = new Set<string>();
-            inputStrings[i].split('')
-                .filter((c: string) => !c.match(punctuationRegex))
-                .map((c: string) => c.toLowerCase())
-                .forEach((c: string) => characterSets[i].add(c))
-        }
-
-        return setIsEqual(characterSets[0], characterSets[1]);
-    }
+    targetString: string;
+    initialString: string;
 
     /**
      * Anagrams are directional as methods provide transitional output from one string to the other.
@@ -65,55 +13,126 @@ export default class Anagram {
      * @throws InvalidAnagramError if strings do not form a valid anagram.
      */
     constructor(from: string, to: string) {
-        if(!Anagram.isValidAnagram(to, from)) {
-            throw new InvalidAnagramError(to, from);
-        }
-
-        this.to = to;
-        this.from = from;
+        this.targetString = to;
+        this.initialString = from;
     }
 
     /**
      *
      */
     calculateTransitionSteps(): Array<string> {
-        const transitionSteps = new Array<string>();
+        const transitionSteps = [this.initialString];
         const current = new Transition(this);
         while(true) {
             const done = current.next();
-            transitionSteps.push(current.getCurrent());
             if(done) {
                 return transitionSteps;
-            }
-        }
-    }
-}
-
-interface TransitionPhase {
-    performAction(transition: Transition): boolean;
-}
-
-class PhaseToLower implements TransitionPhase {
-    performAction(transition: Anagram): boolean {
-        while(anagram.getSortIndex() < this.currentChars.length) {
-            const char = this.currentChars[this.sortIndex];
-            if(char.toLowerCase() !== char) {
-                this.currentChars[this.sortIndex] = char.toLowerCase();
-                return false;
             } else {
-                this.sortIndex++;
+                transitionSteps.push(current.getCurrentString());
             }
         }
-        return true;
     }
 }
 
-const sortedTransitionPhases = [
-    TransitionPhase.toLowerCase,
-    TransitionPhase.sortingCharacters,
-    TransitionPhase.missingCharacterInsertion,
-    TransitionPhase.matchCase,
-    TransitionPhase.done];
+/**
+ * Iterates through all the characters and sets them to be lowercase
+ *
+ * @param transition
+ * @return true when this stage is done.
+ */
+function stageLowerCase(transition: Transition): boolean {
+    while(transition.getScanningIndex() < transition.getCurrentChars().length) {
+        const char = transition.getCurrentChars()[transition.getScanningIndex()];
+        if(char.toLowerCase() !== char) {
+            transition.toLowerCase();
+            return false;
+        } else {
+            transition.incrementScanningIndex();
+        }
+    }
+    return true;
+}
+
+
+/**
+ * Performs a bubble sort on the characters to match the order of the target string. Will also remove characters it
+ * encounters which do not have a sorting value - this will occur if the original string contains a character which
+ * is not in the target.
+ *
+ * @param transition
+ * @returns true when this stage is done.
+ */
+function stageBubbleSort(transition: Transition): boolean {
+    let scannedFromStart: boolean = transition.getScanningIndex() === 0;
+
+    while(true) {
+        const currentCharWeight = transition.currentIndexToOrder[transition.getScanningIndex()];
+        const nextCharWeight = transition.currentIndexToOrder[transition.getScanningIndex() + 1];
+
+        if(currentCharWeight === null) {
+            // Character doesn't exist in to string, remove.
+            transition.removeCharacter(transition.getScanningIndex());
+            return false;
+        } else if(nextCharWeight=== null) {
+            // Next character doesn't exist in the to string, remove.
+            transition.removeCharacter(transition.getScanningIndex() + 1);
+            return false;
+        } else if(currentCharWeight > nextCharWeight) {
+            // Characters are not in order, swap
+            transition.swapChars();
+            return false;
+        } else if(transition.getScanningIndex() >= transition.getCurrentChars().length - 2) {
+            if(scannedFromStart) {
+                return true; // We reached the end
+            }
+            transition.resetScanningIndex();
+            scannedFromStart = true;
+        } else {
+            transition.incrementScanningIndex();
+        }
+    }
+}
+
+function stageMatchCase(transition: Transition): boolean {
+    while(transition.getScanningIndex() < transition.getCurrentChars().length) {
+        const currentChar = transition.getCurrentChars()[transition.getScanningIndex()];
+        const targetChar = transition.targetString.charAt(transition.getScanningIndex());
+        if(targetChar !== currentChar) {
+            if(targetChar === currentChar.toLowerCase()) {
+                transition.toLowerCase();
+                transition.incrementScanningIndex();
+                return false
+            } else if(targetChar === currentChar.toUpperCase()) {
+                transition.toUpperCase();
+                transition.incrementScanningIndex();
+                return false
+            }
+        }
+        transition.incrementScanningIndex();
+    }
+    return true
+}
+
+function stageInsertMissingCharacters(transition: Transition): boolean {
+    while(transition.getScanningIndex() < transition.getCurrentChars().length) {
+        const currentChar = transition.getCurrentChars()[transition.getScanningIndex()];
+        const targetChar = transition.targetString.charAt(transition.getScanningIndex());
+        if(targetChar.toUpperCase() !== currentChar.toUpperCase()) {
+            transition.insertString(targetChar);
+            transition.incrementScanningIndex();
+            return false;
+        }
+        transition.incrementScanningIndex();
+    }
+    return true
+}
+
+const sortedTransitionPhases: Array<(transition :Transition) => boolean> = [
+    stageLowerCase,
+    stageBubbleSort,
+    stageInsertMissingCharacters,
+    stageMatchCase,
+];
 
 /**
  * I wanted it such that the transitions from one string to another can be called iteratively. So the state of the
@@ -125,27 +144,30 @@ export class Transition {
     // We sort by the values of this array. The index of which is the index in string to move from.
     readonly currentIndexToOrder: Array<number|null>;
 
-    readonly currentChars: Array<string>;
+    private readonly currentChars: Array<string>;
 
-    private sortIndex: number;
+    private scanningIndex: number;
 
-    private phase: TransitionPhase;
+    private phase: number;
+
+    readonly targetString: string;
 
     constructor(anagram: Anagram) {
-        this.currentChars = anagram.from.split('');
-        this.currentIndexToOrder = new Array<number|null>(anagram.from.length);
-        this.sortIndex = 0;
+        this.targetString = anagram.targetString;
+        this.currentChars = anagram.initialString.split('');
+        this.currentIndexToOrder = new Array<number|null>(anagram.initialString.length);
+        this.scanningIndex = 0;
         this.phase = 0;
 
         const toCharsClaimed = new Set<number>();
 
-        for(let fromIndex = 0; fromIndex < anagram.from.length; fromIndex++) {
-            const char = anagram.from.charAt(fromIndex);
+        for(let fromIndex = 0; fromIndex < anagram.initialString.length; fromIndex++) {
+            const char = anagram.initialString.charAt(fromIndex);
 
             let found = false;
 
-            for (let toIndex = 0; toIndex < anagram.to.length && !found; toIndex++) {
-                const toChar = anagram.to.charAt(toIndex);
+            for (let toIndex = 0; toIndex < anagram.targetString.length && !found; toIndex++) {
+                const toChar = anagram.targetString.charAt(toIndex);
                 if((toChar === char.toLowerCase() || toChar === char.toUpperCase()) && !toCharsClaimed.has(toIndex)) {
                     toCharsClaimed.add(toIndex);
                     this.currentIndexToOrder[fromIndex] = toIndex;
@@ -160,78 +182,75 @@ export class Transition {
         }
     }
 
-    getSortIndex(): number {
-        return this.sortIndex;
+    getScanningIndex(): number {
+        return this.scanningIndex;
     }
 
-    incrementSortIndex() {
-        this.sortIndex++;
+    getCurrentChars(): Array<string> {
+        return this.currentChars;
     }
 
-    getCurrent(): string {
+    incrementScanningIndex() {
+        this.scanningIndex++;
+    }
+
+    insertString(stringToInsert: string) {
+        const chars = stringToInsert.split('');
+        this.currentChars.splice(this.scanningIndex, 0, ...chars);
+    }
+
+    /**
+     * Resets the scanning
+     */
+    resetScanningIndex() {
+        this.scanningIndex = 0;
+    }
+
+    /**
+     *
+     * @returns The current string value in the transition.
+     */
+    getCurrentString(): string {
         return this.currentChars.join('');
     }
 
-    private removeCharacter(index: number) {
+    removeCharacter(index: number) {
         this.currentChars.splice(index, 1);
         this.currentIndexToOrder.splice(index, 1);
     }
 
-    private swapChars() {
-        this.currentChars[this.sortIndex] = this.currentChars.splice(
-            this.sortIndex + 1, 1, this.currentChars[this.sortIndex])[0];
-        this.currentIndexToOrder[this.sortIndex] = this.currentIndexToOrder.splice(
-            this.sortIndex + 1, 1, this.currentIndexToOrder[this.sortIndex])[0];
+    /**
+     * Swaps the current character marked by the scanningIndex and the following character. Assumes that it is not at
+     * the end of the character array.
+     */
+    swapChars() {
+        this.currentChars[this.scanningIndex] = this.currentChars.splice(
+            this.scanningIndex + 1, 1, this.currentChars[this.scanningIndex])[0];
+        this.currentIndexToOrder[this.scanningIndex] = this.currentIndexToOrder.splice(
+            this.scanningIndex + 1, 1, this.currentIndexToOrder[this.scanningIndex])[0];
     }
 
+    toLowerCase() {
+        const char = this.currentChars[this.getScanningIndex()];
+        this.currentChars[this.getScanningIndex()] = char.toLowerCase();
+    }
 
-    private sortCharacters(): boolean {
-        let resetLow: boolean = this.sortIndex === 0;
-
-        while(true) {
-            const char = this.currentChars[this.sortIndex];
-            if(char.toLowerCase() !== char) {
-                this.currentChars[this.sortIndex] = char.toLowerCase();
-                return false;
-            } else if(this.currentIndexToOrder[this.sortIndex] === null) {
-                // Character doesn't exist in to string, remove.
-                this.removeCharacter(this.sortIndex);
-                return false;
-            } else if(this.currentIndexToOrder[this.sortIndex + 1] === null) {
-                // Next character doesn't exist in the to string, remove.
-                this.removeCharacter(this.sortIndex + 1);
-                return false;
-            } else if(this.currentIndexToOrder[this.sortIndex] > this.currentIndexToOrder[this.sortIndex + 1]) {
-                // Characters are not in order, swap
-                this.swapChars();
-                return false;
-            } else if(this.sortIndex === this.currentChars.length - 2) {
-                if(resetLow) {
-                    return true; // We reached the end
-                }
-                this.sortIndex = 0;
-                resetLow = true;
-            } else {
-                this.sortIndex++;
-            }
-        }
+    toUpperCase() {
+        const char = this.currentChars[this.getScanningIndex()];
+        this.currentChars[this.getScanningIndex()] = char.toUpperCase();
     }
 
     /**
-     * Performs the change
+     * Performs the next step in the transition and updates the state within the Transition instance.
      *
-     * @returns true when done
+     * @returns true when done and not changes have been made to the current string
      */
     next(): boolean {
-        for(const phase of sortedTransitionPhases) {
-            if(this.phase === phase) {
-                if(phase.performAction(this)) {
-                    this.phase ++;
-                    this.sortIndex = 0;
-                } else {
-                    return false;
-                }
+        for(; this.phase < sortedTransitionPhases.length; this.phase++) {
+            if(!sortedTransitionPhases[this.phase](this)) {
+                return false;
             }
+            this.resetScanningIndex();
         }
         return true;
     }

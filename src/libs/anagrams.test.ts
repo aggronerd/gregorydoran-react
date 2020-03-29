@@ -1,9 +1,9 @@
 import Anagram, {InvalidAnagramError, Transition} from "./anagrams";
 
-let to: string;
-let from: string;
+let targetString: string;
+let initialString: string;
 
-const constructAnagram = () => new Anagram(from, to);
+const constructAnagram = () => new Anagram(initialString, targetString);
 
 describe('Anagram', () => {
     describe('constructor', () => {
@@ -11,8 +11,8 @@ describe('Anagram', () => {
 
         describe('is not an anagram', () => {
             beforeEach(() => {
-                to = 'details';
-                from = 'entails';
+                targetString = 'details';
+                initialString = 'entails';
             });
 
             it('throws exception', () => {
@@ -22,8 +22,8 @@ describe('Anagram', () => {
 
         describe('is an anagram', () => {
             beforeEach(() => {
-                to = 'He bugs Gore!';
-                from = 'George Bush';
+                targetString = 'He bugs Gore!';
+                initialString = 'George Bush';
             });
 
             it('creates an instance', () => {
@@ -36,32 +36,112 @@ describe('Anagram', () => {
     describe('transformCharacters', () => {
         const subject = () => constructAnagram().calculateTransitionSteps();
 
-        beforeEach(() => {
-           from = 'Greg Doran';
-           to = 'aggronerd';
+        describe('Both empty strings', () => {
+            beforeEach(() => {
+                initialString = '';
+                targetString = '';
+            });
+
+            it('Returns expected', () => {
+                expect(subject()).toEqual(['']);
+            })
         });
 
-        it('returns expected', () => {
-            expect(subject()).toEqual([
-                'Greg Doran',
-                'greg Doran',
-                'greg doran',
-                'gregdoran',
-                'rgegdoran',
-                'gegrdoran',
-                'eggrdoran',
-                'ggrdorean',
-                'ggroreand',
-                'ggroeanrd',
-                'ggroanerd',
-                'aggronerd',
-                'Aggronerd'
-            ])
+        describe('Empty to something', () => {
+            beforeEach(() => {
+                initialString = '';
+                targetString = 'Something';
+            });
+
+            it('Returns expected', () => {
+                expect(subject()).toEqual([
+                    '',
+                    'S',
+                    'So',
+                    'Som',
+                    'Some',
+                    'Somet',
+                    'Someth',
+                    'Somethi',
+                    'Somethin',
+                    'Something',
+                ]);
+            })
+        });
+
+        describe('Something to empty', () => {
+            beforeEach(() => {
+                initialString = '';
+                targetString = 'Something';
+            });
+
+            it('Returns expected', () => {
+                expect(subject()).toEqual([
+                    'Something',
+                    'something',
+                    'omething',
+                    'mething',
+                    'ething',
+                    'thing',
+                    'hing',
+                    'ing',
+                    'ng',
+                    'g',
+                    '',
+                ]);
+            })
+        });
+
+        describe('Aggronerd!!!', () => {
+            beforeEach(() => {
+                initialString = 'Greg Doran';
+                targetString = 'Aggronerd!!!';
+            });
+
+            it('returns expected', () => {
+                expect(subject()).toEqual([
+                    'Greg Doran',
+                    'greg Doran',
+                    'greg doran',
+                    'grge doran',
+                    'grgedoran',
+                    'grgeodran',
+                    'grgeordan',
+                    'grgeoradn',
+                    'grgeorand',
+                    'ggreorand',
+                    'ggroerand',
+                    'ggroearnd',
+                    'ggroeanrd',
+                    'ggroaenrd',
+                    'ggroanerd',
+                    'ggraonerd',
+                    'ggaronerd',
+                    'gagronerd',
+                    'aggronerd',
+                    'Aggronerd',
+                    'Aggronerd!',
+                    'Aggronerd!!',
+                    'Aggronerd!!!',
+                ])
+            });
+        });
+
+        describe('He bugs gore!', () => {
+            beforeEach(() => {
+                targetString = 'He bugs Gore!';
+                initialString = 'George Bush';
+            });
+
+            it('returns expected', () => {
+
+                expect(subject()).toEqual([])
+            });
         });
     });
 });
 
-describe('TransitionStep', () => {
+describe('Transition', () => {
     let transitionStep: Transition;
 
     const prepareTransitionStep = () => {
@@ -71,8 +151,8 @@ describe('TransitionStep', () => {
 
 
     beforeEach(() => {
-        from = 'Listen';
-        to = 'Silent';
+        initialString = 'Listen';
+        targetString = 'Silent';
     });
 
     describe('currentIndexToOrder', () => {
@@ -84,8 +164,8 @@ describe('TransitionStep', () => {
 
         describe('with duplicate characters', () => {
             beforeEach(() => {
-                from = 'aakBa';
-                to = 'AkbAa';
+                initialString = 'aakBa';
+                targetString = 'AkbAa';
             });
 
             it('equals expected', () => {
@@ -95,8 +175,8 @@ describe('TransitionStep', () => {
 
         describe('with none existent characters in to', () => {
             beforeEach(() => {
-                from = 'Li st en';
-                to = 'Silent';
+                initialString = 'Li st en';
+                targetString = 'Silent';
             });
 
             it('equals expected', () => {
@@ -106,8 +186,8 @@ describe('TransitionStep', () => {
 
         describe('with none existent characters in from', () => {
             beforeEach(() => {
-                from = 'Listen';
-                to = 'Si-l-ent';
+                initialString = 'Listen';
+                targetString = 'Si-l-ent';
             });
 
             it('equals expected', () => {
@@ -123,15 +203,15 @@ describe('TransitionStep', () => {
             it('downcase case first', () => {
                 subject();
 
-                expect(transitionStep.getCurrent()).toEqual('listen');
+                expect(transitionStep.getCurrentString()).toEqual('listen');
             });
 
             it('step 2', () => {
-                from = 'listen';
+                initialString = 'listen';
 
                 subject();
 
-                expect(transitionStep.getCurrent()).toEqual('ilsten');
+                expect(transitionStep.getCurrentString()).toEqual('ilsten');
             })
         })
    })
